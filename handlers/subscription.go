@@ -11,7 +11,7 @@ import (
 )
 
 func SubscribeTopic(c *gin.Context) {
-	topicID := c.Param("id") // URL에서 토픽 ID 추출
+	topicID := c.Param("id")
 	var request struct {
 		UserID string `json:"UserID" binding:"required"`
 	}
@@ -22,18 +22,11 @@ func SubscribeTopic(c *gin.Context) {
 	}
 
 	_, errGetTopic := services.GetTopic(topicID)
-	// _, errGetUser := services.GetUser(request.UserID)
-
-	// if errGetUser != nil {
-	// utils.RespondWithError(c, http.StatusNotFound, "User not found", "NOT_FOUND", errGetUser.Error())
-	// return
-	// }
 	if errGetTopic != nil {
 		utils.RespondWithError(c, http.StatusNotFound, "Topic not found", "NOT_FOUND", errGetTopic.Error())
 		return
 	}
 
-	// 구독 관계 생성
 	subscription, errSubscribeTopic := services.SubscribeTopic(request.UserID, topicID)
 	if errSubscribeTopic != nil {
 		utils.RespondWithError(c, http.StatusInternalServerError, "Subscription Error", "SUBSCRIPTION_ERROR", errSubscribeTopic.Error())
@@ -42,18 +35,9 @@ func SubscribeTopic(c *gin.Context) {
 	c.JSON(http.StatusOK, subscription)
 }
 
-// 토픽 발행 핸들러
 func PublishTopic(c *gin.Context) {
 	topicID := c.Param("id")
 
-	// 토픽 존재 여부 확인
-	// topic, errGetTopic := services.GetTopic(topicID)
-	// if errGetTopic != nil {
-	// 	utils.RespondWithError(c, http.StatusNotFound, "Topic Not Found", "NOT_FOUND", "")
-	// 	return
-	// }
-
-	// 발행할 메시지 내용을 요청으로부터 가져옴
 	var request struct {
 		Message string `json:"message" binding:"required"`
 	}
@@ -63,14 +47,12 @@ func PublishTopic(c *gin.Context) {
 		return
 	}
 
-	// 해당 토픽을 구독한 유저 목록 조회
 	subscribers := services.GetTopicSubscribers(topicID)
 	if len(subscribers) == 0 {
 		c.JSON(http.StatusOK, gin.H{"message": "No subscribers for this topic"})
 		return
 	}
 
-	// 동시적으로 메시지를 보내기 위해 WaitGroup 사용
 	var wg sync.WaitGroup
 	for _, userID := range subscribers {
 		wg.Add(1)
@@ -80,7 +62,6 @@ func PublishTopic(c *gin.Context) {
 		}(userID)
 	}
 
-	// 모든 메시지 전송이 완료될 때까지 대기
 	wg.Wait()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Message sent to all subscribers"})
