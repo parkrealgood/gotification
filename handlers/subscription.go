@@ -19,7 +19,7 @@ var (
 func SubscribeTopic(c *gin.Context) {
 	topicID := c.Param("id") // URL에서 토픽 ID 추출
 	var request struct {
-		UserID string `json:"user_id" binding:"required"`
+		UserID string `json:"UserID" binding:"required"`
 	}
 
 	if errBindJSON := c.ShouldBindJSON(&request); errBindJSON != nil {
@@ -28,12 +28,12 @@ func SubscribeTopic(c *gin.Context) {
 	}
 
 	_, errGetTopic := services.GetTopic(topicID)
-	_, errGetUser := services.GetUser(request.UserID)
+	// _, errGetUser := services.GetUser(request.UserID)
 
-	if errGetUser != nil {
-		utils.RespondWithError(c, http.StatusNotFound, "User not found", "NOT_FOUND", errGetUser.Error())
-		return
-	}
+	// if errGetUser != nil {
+	// utils.RespondWithError(c, http.StatusNotFound, "User not found", "NOT_FOUND", errGetUser.Error())
+	// return
+	// }
 	if errGetTopic != nil {
 		utils.RespondWithError(c, http.StatusNotFound, "Topic not found", "NOT_FOUND", errGetTopic.Error())
 		return
