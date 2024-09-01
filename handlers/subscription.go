@@ -6,14 +6,8 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	"github.com/parkrealgood/gotification/models"
 	"github.com/parkrealgood/gotification/services"
 	"github.com/parkrealgood/gotification/utils"
-)
-
-var (
-	topics        = make(map[string]*models.Topic)        // 토픽 데이터 저장
-	subscriptions = make(map[string]*models.Subscription) // 구독 관계 저장
 )
 
 func SubscribeTopic(c *gin.Context) {
@@ -52,31 +46,25 @@ func SubscribeTopic(c *gin.Context) {
 func PublishTopic(c *gin.Context) {
 	topicID := c.Param("id")
 
+	// 토픽 존재 여부 확인
+	// topic, errGetTopic := services.GetTopic(topicID)
+	// if errGetTopic != nil {
+	// 	utils.RespondWithError(c, http.StatusNotFound, "Topic Not Found", "NOT_FOUND", "")
+	// 	return
+	// }
+
 	// 발행할 메시지 내용을 요청으로부터 가져옴
 	var request struct {
 		Message string `json:"message" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
-		return
-	}
-
-	// 토픽 존재 여부 확인
-	topic, topicExists := topics[topicID]
-	if !topicExists {
-		utils.RespondWithError(c, http.StatusNotFound, "Topic Not Found", "NOT_FOUND", "")
+		utils.RespondWithError(c, http.StatusBadRequest, "Invalid request data", "INVALID_REQUEST", err.Error())
 		return
 	}
 
 	// 해당 토픽을 구독한 유저 목록 조회
-	var subscribers []string
-	for _, sub := range subscriptions {
-		if sub.TopicID == topicID {
-			subscribers = append(subscribers, sub.UserID)
-		}
-	}
-
+	subscribers := services.GetTopicSubscribers(topicID)
 	if len(subscribers) == 0 {
 		c.JSON(http.StatusOK, gin.H{"message": "No subscribers for this topic"})
 		return
@@ -88,7 +76,7 @@ func PublishTopic(c *gin.Context) {
 		wg.Add(1)
 		go func(uid string) {
 			defer wg.Done()
-			services.SendMessageToUser(uid, request.Message, topic.Name)
+			services.SendMessageToUser(uid, request.Message, topicID)
 		}(userID)
 	}
 
